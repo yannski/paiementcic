@@ -1,3 +1,3 @@
-class PaiementCic
+module PaiementCic
   VERSION = "0.2"
 end
