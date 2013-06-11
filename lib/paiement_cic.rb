@@ -18,16 +18,47 @@ module PaiementCic
   API_VERSION = "3.0"
   DATE_FORMAT = "%d/%m/%Y:%H:%M:%S"
 
+  END_POINTS = {
+    cic: {
+      production: 'https://ssl.paiement.cic-banques.fr/paiement.cgi',
+      test: 'https://ssl.paiement.cic-banques.fr/test/paiement.cgi'
+    },
+    cm: {
+      production: 'https://paiement.creditmutuel.fr/paiement.cgi',
+      test: 'https://paiement.creditmutuel.fr/test/paiement.cgi'
+    }
+  }
+  DEFAULT_BANK = :cm
+  DEFAULT_ENV = :test
+
   class << self
-    attr_accessor :hmac_key, :tpe, :societe, :env
+    attr_accessor :hmac_key, :tpe, :societe
     attr_writer :target_url
 
     def configure(&block)
       yield(self) if block_given?
     end
 
+    def bank
+      @bank || DEFAULT_BANK
+    end
+
+    def bank=(value)
+      raise UnknownBankError unless END_POINTS.keys.include?(value.to_sym)
+      @bank = value
+    end
+
+    def env
+      @env || DEFAULT_ENV
+    end
+
+    def env=(value)
+      raise UnknownEnvError unless END_POINTS.first.last.include?(value.to_sym)
+      @env = value
+    end
+
     def target_url
-      @target_url ||= (env == 'production' ? '' : "https://paiement.creditmutuel.fr/test/paiement.cgi") # "https://ssl.paiement.cic-banques.fr/paiement.cgi"
+      @target_url || END_POINTS[self.bank][self.env]
     end
 
     def hmac_sha1(key, data)
@@ -45,4 +76,7 @@ module PaiementCic
       Digest::SHA1.hexdigest(k_opad + [Digest::SHA1.hexdigest(k_ipad + data)].pack("H*"))
     end
   end
+
+  class UnknownBankError < Exception; end
+  class UnknownEnvError < Exception; end
 end
