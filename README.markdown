@@ -16,7 +16,7 @@ It's a Ruby on Rails port of the connexion kits published by the bank.
 ### in an initializer (`config/initializers/paiement_cic.rb`) :
 
 ```ruby
-PaiementCic.configure do |config|
+PaiementCic.default_config.configure do |config|
   # here the hmac key calculated with the js calculator given by CIC
   config.hmac_key = "########################################"
   # Here the TPE number
@@ -32,19 +32,20 @@ PaiementCic.configure do |config|
 end
 ```
 
-You can also specify `hmac_key`, `tpe` and `societe` when initializing `PaiementCic::TPE` and with `paiement_cic_hidden_fields` helper by passing an hash.
+You can also specify different attributes when initializing `PaiementCic::TPE` and with `paiement_cic_hidden_fields` helper by passing an hash.
 ```ruby
 {
   hmac_key: "########################################",
   tpe: "#######",
   societe: "xxxxxxxxxxxxx",
+  env: :test,
 }
 ```
 
 ### in the payment by card view :
 
 ```
-- form_tag PaiementCic.target_url do
+- form_tag PaiementCic.default_config.target_url do
   = paiement_cic_hidden_fields(@order.reference, @order.amount, mail: 'email@example.com', url_retour: edit_order_url(order), url_retour_ok: bank_ok_order_transaction_url(order_transaction), url_retour_err: bank_err_order_transaction_url(order_transaction))
   = submit_tag "Accéder au site de la banque", :style => "font-weight: bold;"
   = image_tag "reassuring_pictograms.jpg", :alt => "Pictogrammes rassurants", :style => "width: 157px;"

@@ -1,9 +1,9 @@
 module PaiementCic::FormHelper
   def paiement_cic_hidden_fields(reference, price, options = {})
     oMac = PaiementCic::TPE.new(options)
-    oa = oMac.config(reference, price, options)
+    oa = oMac.attributes(reference, price, options)
 
-    chaineMAC = oMac.computeHMACSHA1(oa.values.join('*'))
+    chaineMAC = oMac.compute_hmac_sha1(oa.values.join('*'))
 
     url_retour      = options[:url_retour]
     url_retour_ok   = options[:url_retour_ok]

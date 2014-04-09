@@ -1,3 +1,4 @@
+require 'paiement_cic/config'
 require 'paiement_cic/tpe'
 require 'paiement_cic/railtie' if defined?(Rails)
 
@@ -31,50 +32,23 @@ module PaiementCic
   DEFAULT_BANK = :cm
   DEFAULT_ENV = :test
 
-  class << self
-    attr_accessor :hmac_key, :tpe, :societe
-    attr_writer :target_url
+  def self.default_config
+    @@default_config ||= PaiementCic::Config.new
+  end
 
-    def configure(&block)
-      yield(self) if block_given?
+  def self.hmac_sha1(key, data)
+    length = 64
+
+    if (key.length > length)
+      key = [Digest::SHA1.hexdigest(key)].pack("H*")
     end
 
-    def bank
-      @bank || DEFAULT_BANK
-    end
+    key  = key.ljust(length, 0.chr)
 
-    def bank=(value)
-      raise UnknownBankError unless END_POINTS.keys.include?(value.to_sym)
-      @bank = value
-    end
+    k_ipad = key ^ ''.ljust(length, 54.chr)
+    k_opad = key ^ ''.ljust(length, 92.chr)
 
-    def env
-      @env || DEFAULT_ENV
-    end
-
-    def env=(value)
-      raise UnknownEnvError unless END_POINTS.first.last.include?(value.to_sym)
-      @env = value
-    end
-
-    def target_url
-      @target_url || END_POINTS[self.bank][self.env]
-    end
-
-    def hmac_sha1(key, data)
-      length = 64
-
-      if (key.length > length)
-        key = [Digest::SHA1.hexdigest(key)].pack("H*")
-      end
-
-      key  = key.ljust(length, 0.chr)
-
-      k_ipad = key ^ ''.ljust(length, 54.chr)
-      k_opad = key ^ ''.ljust(length, 92.chr)
-
-      Digest::SHA1.hexdigest(k_opad + [Digest::SHA1.hexdigest(k_ipad + data)].pack("H*"))
-    end
+    Digest::SHA1.hexdigest(k_opad + [Digest::SHA1.hexdigest(k_ipad + data)].pack("H*"))
   end
 
   class UnknownBankError < Exception; end

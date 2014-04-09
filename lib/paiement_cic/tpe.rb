@@ -1,23 +1,22 @@
 module PaiementCic
   class TPE
-    attr_accessor :hmac_key, :tpe, :societe
+    attr_accessor :config
 
-    def initialize(options = {})
-      self.hmac_key = options[:hmac_key] || PaiementCic.hmac_key
-      self.tpe = options[:tpe] || PaiementCic.tpe
-      self.societe = options[:societe] || PaiementCic.societe
+    def initialize(options = nil)
+      self.config = options.nil? ? PaiementCic.default_config :
+        PaiementCic::Config.new(options)
     end
 
-    def config(reference, amount_in_cents, options = {})
+    def attributes(reference, amount_in_cents, options = {})
       {
-        'TPE' => tpe,
+        'TPE' => config.tpe,
         'date' => Time.now.strftime(PaiementCic::DATE_FORMAT),
         'montant' => ("%.2f" % amount_in_cents) + "EUR",
         'reference' => reference.to_s,
         'texte-libre' => '',
         'version' => PaiementCic::API_VERSION,
         'lgue' => 'FR',
-        'societe' => societe,
+        'societe' => config.societe,
         'mail' => options[:mail].to_s,
         'nbrech' => options[:nbrech].to_s,
         'dateech1' => options[:dateech1].to_s,
@@ -34,7 +33,7 @@ module PaiementCic
 
     def mac_string params
       [
-        tpe, params["date"], params['montant'], params['reference'], params['texte-libre'],
+        config.tpe, params['date'], params['montant'], params['reference'], params['texte-libre'],
         PaiementCic::API_VERSION, params['code-retour'], params['cvx'], params['vld'], params['brand'],
         params['status3ds'], params['numauto'], params['motifrefus'], params['originecb'],
         params['bincb'], params['hpancb'], params['ipclient'], params['originetr'],
@@ -48,20 +47,21 @@ module PaiementCic
 
     # Check if the HMAC matches the HMAC of the data string
     def valid_hmac?(mac_string, sent_mac)
-      computeHMACSHA1(mac_string) == sent_mac.downcase
+      compute_hmac_sha1(mac_string) == sent_mac.downcase
     end
 
     # Return the HMAC for a data string
-    def computeHMACSHA1(data)
+    def compute_hmac_sha1(data)
       PaiementCic.hmac_sha1(usable_key, data).downcase
     end
+    alias_method :computeHMACSHA1, :compute_hmac_sha1
 
     private
     # Return the key to be used in the hmac function
     def usable_key
 
-      hex_string_key  = hmac_key[0..37]
-      hex_final   = hmac_key[38..40] + "00";
+      hex_string_key  = config.hmac_key[0..37]
+      hex_final   = config.hmac_key[38..40] + "00";
 
       cca0 = hex_final[0].ord
 
