@@ -15,30 +15,21 @@ module PaiementCic
       end
     end
 
+    ["bank", "env"].each do |m|
+      define_method(m) { instance_variable_get("@#{m}") || Object.const_get("default_#{m}".upcase) }
+      define_method "#{m}=" do |value|
+        raise Object.const_get("Unknown#{m.capitalize}Error") unless END_POINTS.select{|k,v| k == value.to_sym or v.include?(value.to_sym)}.any?
+        instance_variable_set("@#{m}", value)
+      end
+    end
+
     def configure(&block)
       yield self
-    end
-
-    def bank
-      @bank || DEFAULT_BANK
-    end
-
-    def bank=(value)
-      raise UnknownBankError unless END_POINTS.keys.include?(value.to_sym)
-      @bank = value
-    end
-
-    def env
-      @env || DEFAULT_ENV
-    end
-
-    def env=(value)
-      raise UnknownEnvError unless END_POINTS.first.last.include?(value.to_sym)
-      @env = value
     end
 
     def target_url
       @target_url || END_POINTS[self.bank][self.env]
     end
+    
   end
 end

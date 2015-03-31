@@ -1,19 +1,11 @@
+require 'overrides/string'
+
 require 'paiement_cic/config'
 require 'paiement_cic/tpe'
 require 'paiement_cic/railtie' if defined?(Rails)
 
 require 'digest/sha1'
 
-class String
-  def ^(other)
-    raise ArgumentError, "Can't bitwise-XOR a String with a non-String" \
-      unless other.kind_of? String
-    raise ArgumentError, "Can't bitwise-XOR strings of different length" \
-      unless self.length == other.length
-    result = (0..self.length-1).collect { |i| self[i].ord ^ other[i].ord }
-    result.pack("C*")
-  end
-end
 
 module PaiementCic
   API_VERSION = "3.0"
@@ -43,7 +35,7 @@ module PaiementCic
       key = [Digest::SHA1.hexdigest(key)].pack("H*")
     end
 
-    key  = key.ljust(length, 0.chr)
+    key = key.ljust(length, 0.chr)
 
     k_ipad = key ^ ''.ljust(length, 54.chr)
     k_opad = key ^ ''.ljust(length, 92.chr)
