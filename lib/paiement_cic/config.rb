@@ -16,7 +16,7 @@ module PaiementCic
     end
 
     ["bank", "env"].each do |m|
-      define_method(m) { instance_variable_get("@#{m}") || Object.const_get("default_#{m}".upcase) }
+      define_method(m) { instance_variable_get("@#{m}") || Object.const_get("PaiementCic::"+("default_#{m}".upcase))}
       define_method "#{m}=" do |value|
         raise Object.const_get("Unknown#{m.capitalize}Error") unless END_POINTS.select{|k,v| k == value.to_sym or v.include?(value.to_sym)}.any?
         instance_variable_set("@#{m}", value)
