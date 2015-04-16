@@ -4,7 +4,7 @@ module PaiementCic
 
     def initialize(options = nil)
       self.config = options.nil? ? PaiementCic.default_config :
-        PaiementCic::Config.new(options)
+        PaiementCic.default_config.merge(options)
     end
 
     def attributes(reference, amount_in_cents, options = {})
