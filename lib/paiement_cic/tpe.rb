@@ -34,10 +34,9 @@ module PaiementCic
     def mac_string params
       [
         config.tpe, params['date'], params['montant'], params['reference'], params['texte-libre'],
-        PaiementCic::API_VERSION, params['code-retour'], params['cvx'], params['vld'], params['brand'],
-        params['status3ds'], params['numauto'], params['motifrefus'], params['originecb'],
-        params['bincb'], params['hpancb'], params['ipclient'], params['originetr'],
-        params['veres'], params['pares']
+        PaiementCic::API_VERSION, params['lgue'], params["societe"], 
+        params["mail"], params["nbrech"], params["dateech1"], params["montantech1"], params["dateech2"], params["montantech2"], params["dateech3"], params["montantech3"],
+        params["dateech4"], params["montantech4"]
       ].join('*') + "*"
     end
 
