@@ -44,8 +44,4 @@ module PaiementCic::FormHelper
     content_tag :iframe, src: iframe_url
   end
 
-  private
-
-    def 
-
 end
