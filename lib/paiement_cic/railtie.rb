@@ -7,9 +7,5 @@ module PaiementCic
       ActionView::Base.send :include, FormHelper
     end
 
-    initializer "paiement_cic.iframe_helpers" do 
-      ActionView::Base.send :include, IframeHelper
-    end
-
   end
 end
