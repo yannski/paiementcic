@@ -27,10 +27,7 @@ module PaiementCic::FormHelper
 
     oMac = PaiementCic::TPE.new(options)
     oa = oMac.attributes(reference, price, options)
-    puts oa.inspect
-    puts oMac.mac_string(oa).inspect
     chaineMAC = oMac.compute_hmac_sha1(oMac.mac_string(oa))
-    puts chaineMAC.inspect
     iframe_params = oa.merge({
       mode_affichage: "iframe",
       "MAC" => chaineMAC
