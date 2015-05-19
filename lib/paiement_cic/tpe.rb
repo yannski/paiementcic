@@ -39,8 +39,16 @@ module PaiementCic
       ].join('*') + "*"
     end
 
+    def cic_mac_string params
+      [
+        config.tpe, params['date'], params['montant'], params['reference'], params['texte-libre'], PaiementCic::API_VERSION, params['code-retour'], params["cvx"], 
+        params["vld"], params["brand"], params["status3ds"], params["numauto"], params["motifrefus"], params["originecb"], params["bincb"], params["hpancb"],
+        params["ipclient"], params["originetr"], params["veres"], params["pares"]
+      ].join('*') + "*"
+    end
+
     def verify_hmac params
-      params.has_key?('MAC') && valid_hmac?(mac_string(params), params['MAC'])
+      params.has_key?('MAC') && valid_hmac?(cic_mac_string(params), params['MAC'])
     end
 
     # Check if the HMAC matches the HMAC of the data string
