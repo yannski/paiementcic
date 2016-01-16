@@ -17,7 +17,7 @@ module PaiementCic
         'version' => PaiementCic::API_VERSION,
         'lgue' => 'FR',
         'societe' => config.societe,
-        'mail' => options[:mail].to_s,
+        'mail' => config.mail,
         'nbrech' => options[:nbrech].to_s,
         'dateech1' => options[:dateech1].to_s,
         'montantech1' => options[:montantech1].to_s,

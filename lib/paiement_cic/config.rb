@@ -1,6 +1,6 @@
 module PaiementCic
   class Config
-    attr_accessor :hmac_key, :tpe, :societe
+    attr_accessor :hmac_key, :tpe, :societe, :mail, :url_retour, :url_retour_ok, :url_retour_err            
     attr_writer :target_url
 
     def initialize(attributes = {}, &block)

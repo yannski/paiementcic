@@ -5,11 +5,11 @@ module PaiementCic::FormHelper
     oMac = PaiementCic::TPE.new(options)
     oa = oMac.attributes(reference, price, options)
 
-    chaineMAC = oMac.compute_hmac_sha1(oa.values.join('*'))
+    chaineMAC = oMac.compute_hmac_sha1(oa.values.join('*'))     
 
-    url_retour      = options[:url_retour]
-    url_retour_ok   = options[:url_retour_ok]
-    url_retour_err  = options[:url_retour_err]
+    url_retour      = config.url_retour
+    url_retour_ok   = config.url_retour_ok
+    url_retour_err  = config.url_retour_err
 
     html = hidden_field_tag('MAC', chaineMAC)
     html << hidden_field_tag('url_retour', url_retour)
