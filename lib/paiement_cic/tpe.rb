@@ -62,6 +62,64 @@ module PaiementCic
     end
     alias_method :computeHMACSHA1, :compute_hmac_sha1
 
+
+
+    # Public: Diagnose result from returned params
+    #
+    # params - The hash of params returned by the bank.
+    #
+    # Returns a hash { :status => :error | :success | :canceled | :bad_params,
+    #                  :user_msg => "msg for user",
+    #                  :tech_msg => "msg for back-office" }
+    def self.diagnose(params)
+      if params['code-retour'].blank?
+        { :status => :bad_params,
+          :user_msg => 'Vous allez être redirigé vers la page d’accueil',
+          :tech_msg => 'La reference est vide. Suspicion de tentative de fraude.' }
+      #elsif !valid_signature?(params)
+      #  { :status => :bad_params, 
+      #    :user_msg => 'Vous allez être redirigé vers la page d’accueil',
+      #    :tech_msg => 'La signature ne correspond pas. Suspicion de tentative de fraude.' }
+      else case params['code-retour']
+        when 'payetest'        
+          { :status => :success,
+            :user_msg => 'Votre paiement de test a été accepté par la banque.',
+            :tech_msg => "Paiement de test accepté." }
+        when 'paiement'
+          { :status => :success,
+            :user_msg => 'Votre paiement a été accepté par la banque.',
+            :tech_msg => "Paiement accepté." }
+        #when '02'
+        #  { :status => :error,
+        #    :user_msg => 'Nous devons entrer en relation avec votre banque avant d’obtenir confirmation du paiement.',
+        #    :tech_msg => 'Le commerçant doit contacter la banque du porteur.' }
+        when 'Annulation'
+          { :status => :error,
+            :user_msg => 'Le paiement a été refusé par la banque.',
+            :tech_msg => "Paiement refusé par la banque. #{VADS_RISK_CONTROL_RESULT[params[:motifrefus]]}" }
+        #when '17'
+        #  { :status => :canceled,
+        #    :user_msg => 'Vous avez annulé votre paiement.',
+        #    :tech_msg => 'Paiement annulé par le client.' }
+        #when '30'
+        #  { :status => :bad_params,
+        #    :user_msg => 'En raison d’une erreur technique, le paiement n’a pu être validé.',
+        #    :tech_msg => "Erreur de format dans la requête (champ #{VADS_QUERY_FORMAT_ERROR[params[:vads_extra_result]]}). Signaler au développeur." }
+        #when '96'
+        #  { :status => :bad_params,
+        #    :user_msg => 'En raison d’une erreur technique, le paiement n’a pu être validé.',
+        #    :tech_msg => 'Code vads_result inconnu. Signaler au développeur.' }
+        else
+          { :status => :bad_params,
+            :user_msg => 'En raison d’une erreur technique, le paiement n’a pu être validé.',
+            :tech_msg => 'Code retour inconnu. Signaler au développeur.' }
+        end
+      end
+    end
+
+
+
+
     private
     # Return the key to be used in the hmac function
     def usable_key
