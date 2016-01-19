@@ -96,7 +96,7 @@ module PaiementCic
         when 'Annulation'
           { :status => :error,
             :user_msg => 'Le paiement a été refusé par la banque.',
-            :tech_msg => "Paiement refusé par la banque. #{VADS_RISK_CONTROL_RESULT[params[:motifrefus]]}" }
+            :tech_msg => "Paiement refusé par la banque. Motif : #{params[:motifrefus]}" }
         #when '17'
         #  { :status => :canceled,
         #    :user_msg => 'Vous avez annulé votre paiement.',
