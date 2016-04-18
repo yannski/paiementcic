@@ -1,6 +1,6 @@
 module PaiementCic
   class Config
-    attr_accessor :hmac_key, :tpe, :societe, :mail, :url_retour, :url_retour_ok, :url_retour_err            
+    attr_accessor :hmac_key, :tpe, :societe, :mail, :url_retour, :url_retour_ok, :url_retour_err
     attr_writer :target_url
 
     def initialize(attributes = {}, &block)
@@ -30,6 +30,6 @@ module PaiementCic
     def target_url
       @target_url || END_POINTS[self.bank][self.env]
     end
-    
+
   end
 end

@@ -1,23 +1,61 @@
+require 'digest/sha1'
+
 module PaiementCic
   class TPE
-    attr_accessor :config
+    attr_accessor :default_config
 
-    def initialize(options = nil)
-      self.config = PaiementCic.default_config
-      # PaiementCic::Config.new(options)
+    attr_accessor :hmac_key, :tpe, :societe, :mail, :url_retour, :url_retour_ok, :url_retour_err
+
+    attr_writer :target_url
+
+    def initialize(options = {}, &block)
+      self.default_config = PaiementCic.default_config
+      if block_given?
+        configure(&block)
+      else
+        [:hmac_key, :tpe, :societe, :mail, :url_retour, :url_retour_ok, :url_retour_err].each{|attribute|
+          send("#{attribute}=", options[attribute] || default_config.send(attribute))
+        }
+
+        [:target_url, :bank, :env].each{|attribute|
+          send("#{attribute}=", options[attribute]) if options[attribute]
+        }
+      end
     end
 
-    def attributes(reference, amount_in_cents, options = {})
+    ["bank", "env"].each do |m|
+      define_method(m) { instance_variable_get("@#{m}") || Object.const_get("PaiementCic::"+("default_#{m}".upcase))}
+      define_method "#{m}=" do |value|
+        raise Object.const_get("Unknown#{m.capitalize}Error") unless END_POINTS.select{|k,v| k == value.to_sym or v.include?(value.to_sym)}.any?
+        instance_variable_set("@#{m}", value)
+      end
+    end
+
+    def configure(&block)
+      yield self
+    end
+
+    def target_url
+      @target_url || begin
+        if self.bank && self.env
+          END_POINTS[self.bank][self.env]
+        else
+          default_config.target_url
+        end
+      end
+    end
+
+    def attributes_for_form(reference, amount_in_cents, options = {})
       {
-        'TPE' => config.tpe,
+        'TPE' => (options[:tpe] || tpe),
         'date' => Time.now.strftime(PaiementCic::DATE_FORMAT),
         'montant' => ("%.2f" % amount_in_cents) + "EUR",
         'reference' => reference.to_s,
         'texte-libre' => '',
         'version' => PaiementCic::API_VERSION,
         'lgue' => 'FR',
-        'societe' => config.societe,
-        'mail' => config.mail,
+        'societe' => (options[:societe] || societe),
+        'mail' => (options[:mail] || mail),
         'nbrech' => options[:nbrech].to_s,
         'dateech1' => options[:dateech1].to_s,
         'montantech1' => options[:montantech1].to_s,
@@ -33,7 +71,7 @@ module PaiementCic
 
     def mac_string params
       [
-        config.tpe, params['date'], params['montant'], params['reference'], params['texte-libre'], PaiementCic::API_VERSION, params['lgue'], params["societe"], 
+        tpe, params['date'], params['montant'], params['reference'], params['texte-libre'], PaiementCic::API_VERSION, params['lgue'], params["societe"],
         params["mail"], params["nbrech"], params["dateech1"], params["montantech1"], params["dateech2"], params["montantech2"], params["dateech3"], params["montantech3"],
         params["dateech4"], params["montantech4"]
       ].join('*') + "*"
@@ -41,7 +79,7 @@ module PaiementCic
 
     def cic_mac_string params
       [
-        config.tpe, params['date'], params['montant'], params['reference'], params['texte-libre'], PaiementCic::API_VERSION, params['code-retour'], params["cvx"], 
+        tpe, params['date'], params['montant'], params['reference'], params['texte-libre'], PaiementCic::API_VERSION, params['code-retour'], params["cvx"],
         params["vld"], params["brand"], params["status3ds"], params["numauto"], params["motifrefus"], params["originecb"], params["bincb"], params["hpancb"],
         params["ipclient"], params["originetr"], params["veres"], params["pares"]
       ].join('*') + "*"
@@ -58,11 +96,9 @@ module PaiementCic
 
     # Return the HMAC for a data string
     def compute_hmac_sha1(data)
-      PaiementCic.hmac_sha1(usable_key, data).downcase
+      hmac_sha1(usable_key, data).downcase
     end
     alias_method :computeHMACSHA1, :compute_hmac_sha1
-
-
 
     # Public: Diagnose result from returned params
     #
@@ -77,11 +113,11 @@ module PaiementCic
           :user_msg => 'Vous allez être redirigé vers la page d’accueil',
           :tech_msg => 'La reference est vide. Suspicion de tentative de fraude.' }
       #elsif !valid_signature?(params)
-      #  { :status => :bad_params, 
+      #  { :status => :bad_params,
       #    :user_msg => 'Vous allez être redirigé vers la page d’accueil',
       #    :tech_msg => 'La signature ne correspond pas. Suspicion de tentative de fraude.' }
       else case params['code-retour']
-        when 'payetest'        
+        when 'payetest'
           { :status => :success,
             :user_msg => 'Votre paiement de test a été accepté par la banque.',
             :tech_msg => "Paiement de test accepté." }
@@ -117,15 +153,12 @@ module PaiementCic
       end
     end
 
-
-
-
     private
+
     # Return the key to be used in the hmac function
     def usable_key
-
-      hex_string_key  = config.hmac_key[0..37]
-      hex_final   = config.hmac_key[38..40] + "00";
+      hex_string_key  = hmac_key[0..37]
+      hex_final   = hmac_key[38..40] + "00";
 
       cca0 = hex_final[0].ord
 
@@ -138,6 +171,21 @@ module PaiementCic
       end
 
       [hex_string_key].pack("H*")
+    end
+
+    def hmac_sha1(key, data)
+      length = 64
+
+      if (key.length > length)
+        key = [Digest::SHA1.hexdigest(key)].pack("H*")
+      end
+
+      key = key.ljust(length, 0.chr)
+
+      k_ipad = key ^ ''.ljust(length, 54.chr)
+      k_opad = key ^ ''.ljust(length, 92.chr)
+
+      Digest::SHA1.hexdigest(k_opad + [Digest::SHA1.hexdigest(k_ipad + data)].pack("H*"))
     end
   end
 end
